@@ -50,7 +50,19 @@ Do not fabricate a failed attempt just to fill the template. Record actual attem
 - Root cause: `app.env` contained incorrect ports (5433, 6380) and an incorrect Postgres password ending in `8d` instead of `8c`.
 - Fix: Updated `app.env` to use standard ports (5432, 6379) and correct password. Removed `ports` declarations for postgres and redis from `docker-compose.yml` to ensure network isolation.
 - Retest evidence: `curl http://localhost:8080/ready` now returns 200 OK and reports both dependencies as "ready".
-- Related commit: [main 61873bd] fix(nginx): correct host port mapping and upstream load balancing port
+- Related commit: [main 31b1f30] fix(db): correct connection credentials and isolate database ports
 - Remaining uncertainty: Data persistence. If we restart the Postgres container, does it keep our records?
+
+## Entry 4 / 20.9.2026 3:35 PM / Data Persistence and Volume Mounting
+- Symptom: Data written to Postgres (/records) and Redis (/counter) is lost when the respective containers are restarted.
+- Hypothesis: The containers are not properly configured with persistent Docker volumes mapping to their default data directories.
+- Command or test: `curl` POST to `/records`, `docker compose restart postgres`, and `curl` GET to `/records`.
+- Actual output: The newly created record disappeared after restart.
+- Failed attempt and what changed your thinking: N/A.
+- Root cause: Postgres was configured to use a `tmpfs` RAM disk for `/var/lib/postgresql/data` and the named volume was mapped to a `/backup` folder. Redis was launched with command flags explicitly disabling persistence (`--save ""` and `--appendonly "no"`).
+- Fix: Removed Postgres `tmpfs`, mapped `postgres-data` volume to `/var/lib/postgresql/data`. Changed Redis command to `--appendonly yes`, mapped a new `redis-data` volume to `/data`, and added `redis-data` to the global volumes block.
+- Retest evidence: Records and counters now successfully survive container restarts.
+- Related commit: [main 31b1f30] fix(db): correct connection credentials and isolate database ports
+- Remaining uncertainty: Environment variables and secrets are still hard-copied into the Docker image, violating security rules.
 
 
