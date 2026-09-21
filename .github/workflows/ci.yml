@@ -1,0 +1,40 @@
+name: Assessment CI
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  validate-environment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create Test Environment Variables
+        run: |
+          mkdir -p config
+          echo "DATABASE_URL=postgresql://barq_app:BarqLabOnly_7qN2vK8c@postgres:5432/barq_tasks" > config/app.env
+          echo "REDIS_URL=redis://redis:6379/0" >> config/app.env
+          echo "POSTGRES_PASSWORD=BarqLabOnly_7qN2vK8c" >> config/app.env
+
+      - name: Syntax and Compose Checks
+        run: docker compose config
+
+      - name: Build Images
+        run: docker compose build
+
+      - name: Start Environment
+        run: docker compose up -d
+
+      - name: Wait for Readiness and Validate
+        run: |
+          chmod +x validate.py
+          ./validate.py
+          
+      - name: Failure Test (Chaos Engineering)
+        run: |
+          chmod +x failure_test.py
+          ./failure_test.py
