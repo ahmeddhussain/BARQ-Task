@@ -74,7 +74,20 @@ Do not fabricate a failed attempt just to fill the template. Record actual attem
 - Root cause: Intentional security misconfigurations by the developers.
 - Fix: Removed `.env` COPY command from Dockerfile and changed user to `app`. Moved the Postgres password to `config/app.env` and injected it into the postgres container using `env_file` in compose.
 - Retest evidence: `docker compose build && docker compose up -d` successfully builds and runs. Environment remains healthy running as a non-privileged user without exposed secrets.
-- Related commit: [main d267a07] fix(storage): enable proper volume persistence for Postgres and Redis
-- Remaining uncertainty: We still need to configure resource limits and restart policies.
+- Related commit: [main 8d27ac7] refactor(security): run app as non-root user and secure plain-text secrets
+- Remaining uncertainty: We still need to configure resource limits, restart policies, secrets protection and Block direct NGINX access to PostgreSQL/Redis.
+
+## Entry 6 / 21.9.2026 1:45 PM /roduction Readiness: Isolation, Limits, and Secrets
+- Symptom: NGINX had unnecessary access to the backend network. Containers lacked automatic restart policies and resource limits. Secret file `config/app.env` was not properly ignored by Git or Docker.
+- Hypothesis: The infrastructure lacked production-hardening configurations as mandated by the requirements.
+- Command or test: Inspected `docker-compose.yml`, `.gitignore`, and `.dockerignore`.
+- Actual output: NGINX attached to `backend`. `restart: "no"` set on apps. `config/app.env` missing from ignore lists.
+- Failed attempt and what changed your thinking: N/A.
+- Root cause: Missing production safeguards in the baseline code.
+- Fix: Removed `backend` network from NGINX. Changed restart policies to `always` for all services. Added CPU (0.5) and Memory (256M) limits to the apps. Appended `config/app.env` to `.gitignore` and `.dockerignore`.
+- Retest evidence: `docker compose up -d` successfully applies limits and network constraints. Containers remain healthy.
+- Remaining uncertainty: Environment is stable. Ready to begin Part 3 (Automated Validation and Scripts).
+
+
 
 
