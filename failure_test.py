@@ -52,7 +52,7 @@ if __name__ == "__main__":
     # NGINX needs a second to realize app-01 is dead and reroute to app-02
     time.sleep(2) 
 
-    print_step("Measuring traffic during failure (app-02 should handle everything)")
+    print_step("Measuring continued traffic on app-02 and expected errors on app-01")    
     success, errors = measure_traffic(duration=5, expected_instances=["app-02"])
     if success == 0:
         print("\033[91mFAIL\033[0m: Site went down completely!")

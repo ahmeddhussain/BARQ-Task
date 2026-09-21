@@ -167,7 +167,8 @@ chmod +x validate.py
 ```
 
 ### 2. Resilience & Chaos Engineering Test
-Stops an active compute backend, measures client impact through NGINX, verifies automatic traffic failover, restores the dead container, and proves recovery.
+Stops an active compute backend, measures continued traffic on app-02 alongside expected upstream timeout errors on app-01 (due to `proxy_next_upstream off`), restores the stopped container, and proves recovery.
+
 ```bash
 chmod +x failure_test.py
 ./failure_test.py
@@ -250,7 +251,7 @@ curl http://localhost:8080/records
 - **Readiness Checks:** `/ready` actively checks SQL execution (`SELECT 1`) and cache connectivity (`PING`). If a database drops, traffic is severed before user requests fail.
 
 ### 4. Why these timeouts, retries, restart settings, and resource limits?
-- **Timeouts & Retries:** `proxy_connect_timeout 2s;` combined with round-robin failover allows NGINX to transparently divert traffic to healthy nodes if an instance dies, maintaining high availability.
+- **Timeouts & Retries:** NGINX is configured with `proxy_connect_timeout 2s;` and `proxy_next_upstream off;`. When an instance stops, requests to the dead backend produce bounded 504 timeouts after 2 seconds, while requests to the healthy instance continue to succeed with 200 OK.
 - **Restart Policies:** `restart: always` ensures instant process recovery upon crashes or system reboots.
 - **Resource Limits:** Restricting compute nodes to `0.5` CPU cores and `256MB` RAM guarantees that memory leaks or thread contention cannot induce kernel OOM panics on the host node.
 
