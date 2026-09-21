@@ -72,6 +72,5 @@
 - Related commit:[main e9c939e] feat(infra): harden networks, add resource limits, set restart policies and ignore secrets
 - Remaining uncertainty: Environment is stable. Ready to begin Part 3 (Automated Validation and Scripts).
 
-
-
+**Note**: `./screenshots` shows commands output, debugging and analysis along side with this documentation.
 
