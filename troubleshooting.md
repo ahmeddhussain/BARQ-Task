@@ -86,6 +86,7 @@ Do not fabricate a failed attempt just to fill the template. Record actual attem
 - Root cause: Missing production safeguards in the baseline code.
 - Fix: Removed `backend` network from NGINX. Changed restart policies to `always` for all services. Added CPU (0.5) and Memory (256M) limits to the apps. Appended `config/app.env` to `.gitignore` and `.dockerignore`.
 - Retest evidence: `docker compose up -d` successfully applies limits and network constraints. Containers remain healthy.
+- Related commit:[main e9c939e] feat(infra): harden networks, add resource limits, set restart policies and ignore secrets
 - Remaining uncertainty: Environment is stable. Ready to begin Part 3 (Automated Validation and Scripts).
 
 
