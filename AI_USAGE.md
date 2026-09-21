@@ -1,12 +1,23 @@
 # AI usage disclosure
 
-Write None if no AI was used. Otherwise record each use:
+- **Tool/model:**  Claude/ Google AI Studio
+- **Purpose:** Brainstorming architecture, Log Analysis, designing scripts, and drafting documentation.
+- **Files or decisions affected:** 
+  - `docker-compose.yml` overall understanding of the architecture.
+  - `validate.py`, `failure_test.py`, `backup.sh`, `restore.sh` (Implementation logic)
+  - `log_analysis.md` (Regex and `jq` query optimization)
+  - `.github/workflows.ci` Create dummy/Test Environment Variables for CI Testing
 
-- Tool/model:
-- Purpose:
-- Files or decisions affected:
-- What you changed or rejected:
-- How you independently verified it:
-- Related commit:
+- **What you changed or rejected:** 
+  - `docker-compose.yml` drafting, did it manually to ensure secure architecture.
+  - Rewrote the technical `decisions.md` and `Troubleshooting.md` to accurately reflect personal troubleshooting decisions rather than claiming credit.
+  - Corrected pipe streaming logic in `restore.sh` on failure.
+  
 
-You may use AI and external resources. You must understand and demonstrate the work.
+- **How you independently verified it:** 
+  - Executed every Linux/bash command manually in local terminal.
+  - Ran unit tests (`python -m unittest discover -s tests -v`) to verify application semantics.
+  - Confirmed all automated checks passed via independent GitHub Actions workflow runs.
+  - Manual review on starting and before submission for all files.
+
+- **Related commits:** Across all progressive commits in the repository history.
