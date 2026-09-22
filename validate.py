@@ -7,7 +7,7 @@ import socket
 import json
 import sys
 
-BASE_URL = "http://127.0.0.1:8080"
+BASE_URL = "http://127.0.0.1:8090"
 TIMEOUT = 30  # seconds to wait for boot
 
 def print_result(name, success, details=""):
