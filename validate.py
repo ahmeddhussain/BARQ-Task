@@ -46,19 +46,20 @@ def test_endpoints():
 
 def test_load_balancing():
     instances_seen = set()
-    print("Checking load balancing (requires both app-01 and app-02)...")
-    for _ in range(10):
+    print("Checking load balancing...")
+    for _ in range(12):
         try:
             req = urllib.request.urlopen(f"{BASE_URL}/instance", timeout=2)
             data = json.loads(req.read().decode())
             instances_seen.add(data.get("instance_id"))
-            if "app-01" in instances_seen and "app-02" in instances_seen:
-                print_result("Load Balancing", True, "Both instances responded.")
-                return
         except Exception:
             pass
-        time.sleep(0.5)
-    print_result("Load Balancing", False, f"Only saw: {instances_seen}")
+        time.sleep(0.2)
+    
+    if "app-01" in instances_seen and "app-02" in instances_seen:
+        print_result("Load Balancing", True, f"Instances responding: {sorted(instances_seen)}")
+    else:
+        print_result("Load Balancing", False, f"Only saw: {instances_seen}")
 
 def test_port_isolation():
     prohibited_ports = {"Postgres": 15432, "Postgres (Default)": 5432, "Redis": 16379, "Redis (Default)": 6379, "App-01": 8081}
