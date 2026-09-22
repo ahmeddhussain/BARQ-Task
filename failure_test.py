@@ -6,7 +6,7 @@ import subprocess
 import json
 import sys
 
-BASE_URL = "http://127.0.0.1:8080"
+BASE_URL = "http://127.0.0.1:8090"
 
 def print_step(msg):
     print(f"\n\033[94m==> {msg}\033[0m")

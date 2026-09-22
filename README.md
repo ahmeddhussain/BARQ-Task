@@ -1,7 +1,7 @@
-https://github.com/ahmeddhussain/BARQ-Task.git
-# BARQ Systems — DevOps Internship Assessment (Production Manual)
 
-[![CI Pipeline](https://github.com/ahmeddhussain/BARQ-Task.git/actions/workflows/ci.yml/badge.svg)](https://github.com/ahmeddhussain/BARQ-Task.git/actions)
+# BARQ Systems — DevOps Internship Assessment (Final Production State)
+
+[![CI Pipeline](https://github.com/ahmeddhussain/BARQ-Task/actions/workflows/ci.yml/badge.svg)](https://github.com/ahmeddhussain/BARQ-Task/actions)
 ![Docker](https://img.shields.io/badge/Docker-24.0+-blue.svg)
 ![Compose](https://img.shields.io/badge/Compose-v2-blue.svg)
 ![Python](https://img.shields.io/badge/Python-3.12-yellow.svg)
@@ -9,7 +9,7 @@ https://github.com/ahmeddhussain/BARQ-Task.git
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)
 ![Redis](https://img.shields.io/badge/Redis-7.4-red.svg)
 
-This repository contains the hardened, containerized deployment of the BARQ Systems assessment service. The solution features an NGINX reverse proxy load-balancing traffic across multiple non-root Flask API instances, backed by persistent PostgreSQL storage and Redis in-memory caching with strict network-level isolation.
+This repository contains the hardened, containerized deployment of the BARQ Systems assessment service. The final production solution features an NGINX reverse proxy load-balancing traffic across **three non-root Flask API instances** on **public host port 8090**, backed by persistent PostgreSQL storage and Redis in-memory caching with strict network-level isolation.
 
 ---
 
@@ -27,7 +27,7 @@ This repository contains the hardened, containerized deployment of the BARQ Syst
 
 ## Architecture & Request Flow
 
-The system employs a multi-tier, defense-in-depth architecture separating edge routing, compute, and persistence layers.
+The final production system operates on **port 8090** with three dynamically balanced compute nodes:
 
 ```
                       [ External Client / Traffic ]
@@ -36,8 +36,7 @@ The system employs a multi-tier, defense-in-depth architecture separating edge r
                                     ▼
        ┌─────────────────────────────────────────────────────────┐
        │                       Host Gateway                      │
-       │                   Published Port: 8080                  │
-       │           (Target Port 8090 after Live Change)          │
+       │                   Published Port: 8090                  │
        └────────────────────────────┬────────────────────────────┘
                                     │
                               frontend net
@@ -47,20 +46,20 @@ The system employs a multi-tier, defense-in-depth architecture separating edge r
        │                       NGINX Edge                        │
        │               Container Port: 80 (TCP)                  │
        │           Reverse Proxy & Load Balancer                 │
-       │           Upstream: Round-Robin Pool                    │
-       └──────────────┬───────────────────────────┬──────────────┘
-                      │                           │
-         frontend net │                           │ frontend net
-                      ▼                           ▼
-       ┌──────────────────────────┐  ┌──────────────────────────┐
-       │      Flask: app-01       │  │      Flask: app-02       │
-       │  User: app (UID 10001)   │  │  User: app (UID 10001)   │
-       │  Container Port: 8080    │  │  Container Port: 8080    │
-       │  CPU: 0.5 | Mem: 256MB   │  │  CPU: 0.5 | Mem: 256MB   │
-       └──────────────┬───────────┘  └────────────┬─────────────┘
-                      │                           │
-          backend net │                           │ backend net
-                      └─────────────┬─────────────┘
+       │      Upstream Pool: app-01, app-02, and app-03          │
+       └───────┬────────────────────┬────────────────────┬───────┘
+               │                    │                    │
+  frontend net │       frontend net │       frontend net │
+               ▼                    ▼                    ▼
+       ┌───────────────┐    ┌───────────────┐    ┌───────────────┐
+       │ Flask: app-01 │    │ Flask: app-02 │    │ Flask: app-03 │
+       │ User: app     │    │ User: app     │    │ User: app     │
+       │ Port: 8080    │    │ Port: 8080    │    │ Port: 8080    │
+       │ 0.5c / 256MB  │    │ 0.5c / 256MB  │    │ 0.5c / 256MB  │
+       └───────┬───────┘    └───────┬───────┘    └───────┬───────┘
+               │                    │                    │
+   backend net │        backend net │        backend net │
+               └────────────────────┼────────────────────┘
                                     │
                     ┌───────────────┴───────────────┐
                     ▼                               ▼
@@ -74,7 +73,7 @@ The system employs a multi-tier, defense-in-depth architecture separating edge r
 ```
 
 ### Network Isolation Policy
-- **`frontend` Network (`bridge`):** Bridges NGINX and application backends (`app-01`, `app-02`, and live dynamic instances). Isolated from persistence infrastructure.
+- **`frontend` Network (`bridge`):** Bridges NGINX and application backends (`app-01`, `app-02`, and `app-03`). Isolated from persistence infrastructure.
 - **`backend` Network (`bridge`, `internal: true`):** Connects compute instances to PostgreSQL and Redis. NGINX has zero network interfaces connected to the backend network, preventing lateral traversal or direct database penetration.
 
 ---
@@ -83,9 +82,10 @@ The system employs a multi-tier, defense-in-depth architecture separating edge r
 
 | Service | Container Name | Internal Port | Host Published Port | Network Membership | User Privilege |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Edge Proxy** | `nginx` | 80/tcp | `8080` (or `8090`) | `frontend` | `nginx` |
+| **Edge Proxy** | `nginx` | 80/tcp | **`8090`** | `frontend` | `nginx` |
 | **API Node 1** | `app-01` | 8080/tcp | *Blocked* | `frontend`, `backend` | `app` (UID 10001) |
 | **API Node 2** | `app-02` | 8080/tcp | *Blocked* | `frontend`, `backend` | `app` (UID 10001) |
+| **API Node 3** | `app-03` | 8080/tcp | *Blocked* | `frontend`, `backend` | `app` (UID 10001) |
 | **Database** | `postgres` | 5432/tcp | *Blocked* | `backend` | `postgres` |
 | **Cache Store** | `redis` | 6379/tcp | *Blocked* | `backend` | `redis` |
 
@@ -94,18 +94,6 @@ The system employs a multi-tier, defense-in-depth architecture separating edge r
 ## Environment Configuration
 
 Configuration is managed via runtime environment injection. Secrets are untracked by Git (`.gitignore`) and excluded from Docker build contexts (`.dockerignore`).
-
-### Configuration Parameters (`config/app.env`)
-```env
-DATABASE_URL=postgresql://barq_app:BarqLabOnly_7qN2vK8c@postgres:5432/barq_tasks
-REDIS_URL=redis://redis:6379/0
-POSTGRES_PASSWORD=BarqLabOnly_7qN2vK8c
-```
-
-### Host Parameters (`.env`)
-```env
-PUBLIC_PORT=8080
-```
 
 ---
 
@@ -116,34 +104,31 @@ All commands are copy-pasteable and must be executed from the repository root.
 ### 1. Initial Setup & Secrets Initialization
 ```bash
 # Create local configuration file from template
-mkdir -p config
+mkdir -p config  #insert dummy info, real values should be in ./config/app.env
 cat << 'EOF' > config/app.env
 DATABASE_URL=postgresql://barq_postgres:5432
 REDIS_URL=redis://ahmed_redis:6379/0
 POSTGRES_PASSWORD=AhmedPASS
 EOF
 
-# Those are only test values
-# Ensure safe host port definition
-cp .env.example .env
 ```
 
-### 2. Build & Launch Environment
+### 2. Build & Launch Stack (Port 8090)
 ```bash
 # Build the non-root images using cache-safe syntax
 docker compose build
 
-# Launch the multi-container stack in detached mode
+# Launch the three-instance stack in detached mode
 docker compose up -d
 
-# Verify container health status (wait ~10s for healthcheck probing)
+# Verify all 5 containers report healthy
 docker compose ps
 ```
 
-### 3. Live Log Streaming
+### 3. Verification & Live Traffic Balancing
 ```bash
-# Stream aggregated JSON logs across all services
-docker compose logs -f
+# Validate that traffic distributes across all three instances
+for i in {1..9}; do curl -s http://localhost:8090/instance | jq .instance_id; done
 ```
 
 ### 4. Stop & Teardown
@@ -151,7 +136,7 @@ docker compose logs -f
 # Graceful shutdown preserving persistent volumes
 docker compose down
 
-# Complete teardown purging volumes (destructive lab reset)
+# Complete teardown purging volumes (destructive reset)
 docker compose down -v
 ```
 
@@ -160,15 +145,14 @@ docker compose down -v
 ## Validation & Automated Testing
 
 ### 1. Automated Environment Validation
-Verifies all public routes, proves upstream round-robin load distribution, tests readiness probing, and scans host network interfaces for unauthorized port leakage.
+Verifies all public routes, proves upstream round-robin load distribution across all 3 nodes, tests readiness probing, and scans host network interfaces for unauthorized port leakage.
 ```bash
 chmod +x validate.py
-./validate.py
+./validate.py 8090
 ```
 
 ### 2. Resilience & Chaos Engineering Test
-Stops an active compute backend, measures continued traffic on app-02 alongside expected upstream timeout errors on app-01 (due to `proxy_next_upstream off`), restores the stopped container, and proves recovery.
-
+Stops an active compute backend, measures continued traffic on healthy nodes alongside expected upstream timeout errors on the stopped node (due to `proxy_next_upstream off`), restores the stopped container, and proves recovery.
 ```bash
 chmod +x failure_test.py
 ./failure_test.py
@@ -206,8 +190,8 @@ chmod +x restore.sh
 
 ### Proof of Persistence Across Teardown
 ```bash
-# 1. Insert test record
-curl -H 'Content-Type: application/json' -d '{"title":"Disaster Recovery Verification"}' http://localhost:8080/records
+# 1. Insert test record on final port 8090
+curl -H 'Content-Type: application/json' -d '{"title":"Disaster Recovery Verification"}' http://localhost:8090/records
 
 # 2. Recreate containers keeping persistent volume
 docker compose down
@@ -215,7 +199,7 @@ docker compose up -d
 sleep 8
 
 # 3. Prove persistence
-curl http://localhost:8080/records
+curl http://localhost:8090/records
 ```
 
 ---
@@ -227,7 +211,7 @@ curl http://localhost:8080/records
 | `GET` | `/` | `200 OK` | Service liveness message and executing instance ID. |
 | `GET` | `/health` | `200 OK` | Process liveness probe. Returns independent of dependencies. |
 | `GET` | `/ready` | `200 OK` / `503` | Verifies live TCP/SQL queries against Postgres and Redis. |
-| `GET` | `/instance` | `200 OK` | Returns backend identity (`app-01` or `app-02`) for load balance testing. |
+| `GET` | `/instance` | `200 OK` | Returns backend identity (`app-01`, `app-02`, or `app-03`) for load balance testing. |
 | `POST` | `/records` | `201 Created` | Inserts record into Postgres. Body: `{"title": "string"}`. |
 | `GET` | `/records` | `200 OK` | Retrieves persisted records ordered by ID. |
 | `GET` | `/counter` | `200 OK` | Atomically increments Redis key `barq:requests`. |
@@ -246,12 +230,12 @@ curl http://localhost:8080/records
 - **Deduplication:** A corrupted line at line 313 in `access.log` caused naive JSON parsers to abort. Deduplication was executed using `jq -R 'fromjson? | .request_id' | sort -u`, parsing only valid JSON and isolating unique client request IDs.
 
 ### 3. How do requests flow? Why these ports, networks, and readiness checks?
-- **Request Flow:** Client ➔ NGINX (Port 8080) ➔ Internal upstream balancing ➔ Flask (Port 8080) ➔ PostgreSQL (5432) & Redis (6379).
+- **Request Flow:** Client ➔ NGINX (Port 8090) ➔ Internal upstream balancing ➔ Flask (Port 8080) ➔ PostgreSQL (5432) & Redis (6379).
 - **Network Design:** Strict dual-homed isolation. NGINX only has access to `frontend`; databases only exist on `backend`. The Flask compute layer acts as the bridge.
 - **Readiness Checks:** `/ready` actively checks SQL execution (`SELECT 1`) and cache connectivity (`PING`). If a database drops, traffic is severed before user requests fail.
 
 ### 4. Why these timeouts, retries, restart settings, and resource limits?
-- **Timeouts & Retries:** NGINX is configured with `proxy_connect_timeout 2s;` and `proxy_next_upstream off;`. When an instance stops, requests to the dead backend produce bounded 504 timeouts after 2 seconds, while requests to the healthy instance continue to succeed with 200 OK.
+- **Timeouts & Retries:** NGINX is configured with `proxy_connect_timeout 2s;` and `proxy_next_upstream off;`. When an instance stops, requests to the dead backend produce bounded 504 timeouts after 2 seconds, while requests to healthy instances continue to succeed with 200 OK.
 - **Restart Policies:** `restart: always` ensures instant process recovery upon crashes or system reboots.
 - **Resource Limits:** Restricting compute nodes to `0.5` CPU cores and `256MB` RAM guarantees that memory leaks or thread contention cannot induce kernel OOM panics on the host node.
 
@@ -267,4 +251,3 @@ curl http://localhost:8080/records
 - **Production Architecture Strategy:**
   1. Replace the single NGINX container with a Cloud Load Balancer (e.g., AWS Application Load Balancer) spanning multiple Availability Zones.
   2. Transition PostgreSQL to an automated multi-AZ cluster with synchronous replication and automated DNS failover (e.g., AWS RDS Multi-AZ).
-```
